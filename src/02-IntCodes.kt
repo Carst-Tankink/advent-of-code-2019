@@ -1,4 +1,5 @@
-import IntCodes.runProgram
+import IntCodes.landOnMoon
+import IntCodes.runWithNounAndVerb
 import IntCodes.tests
 import java.io.File
 
@@ -79,6 +80,34 @@ object IntCodes {
             final.tape == expected
         ) { "Mismatch. Input: $input, expected $expected actual: $final" }
     }
+
+    fun runWithNounAndVerb(
+        inputs: List<Int>,
+        noun: Int,
+        verb: Int
+    ): Int {
+        val crashTape = inputs.mapIndexed { i, v ->
+            when (i) {
+                1 -> noun
+                2 -> verb
+                else -> v
+            }
+        }
+
+        return runProgram(Machine(0, crashTape)).tape[0]
+    }
+
+    fun landOnMoon(inputs: List<Int>): Pair<Int, Int> {
+        val verbs = 0.rangeTo(99)
+        val nouns = 0.rangeTo(99)
+
+        for (verb in verbs) for (noun in nouns) {
+            val result = runWithNounAndVerb(inputs, noun, verb)
+            if (result == 19690720) return Pair(noun, verb)
+        }
+
+        throw Exception("No match found")
+    }
 }
 
 fun main() {
@@ -90,15 +119,11 @@ fun main() {
         .flatMap { x -> x.split(",") }
         .map(String::toInt)
 
-    val crashTape = inputs.mapIndexed { i, v ->
-        when (i) {
-            1 -> 12
-            2 -> 2
-            else -> v
-        }
-    }
-
-    val result = runProgram(Machine(0, crashTape)).tape[0]
-
+    val result = runWithNounAndVerb(inputs, 12, 2)
     println("Result $result")
+
+    val result2 = landOnMoon(inputs)
+
+    println("Final result: ${100 * result2.first + result2.second}")
 }
+
