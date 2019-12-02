@@ -1,25 +1,33 @@
+import RocketEquation.calculateFuel
+import RocketEquation.calculateFuelDifferential
+import RocketEquation.tests
 import java.io.File
 
-fun calculateFuel(mass: Int): Int = (mass / 3) - 2
+object RocketEquation {
+    fun calculateFuel(mass: Int): Int = (mass / 3) - 2
 
-fun calculateFuelDifferential(mass: Int): Int {
-    val initialFuel = calculateFuel(mass)
+    fun calculateFuelDifferential(mass: Int): Int {
+        val initialFuel = calculateFuel(mass)
 
-    return when {
-        initialFuel <= 0 -> 0
-        else -> initialFuel + calculateFuelDifferential(initialFuel)
+        return when {
+            initialFuel <= 0 -> 0
+            else -> initialFuel + calculateFuelDifferential(initialFuel)
+        }
+    }
+
+
+    fun tests() {
+        assert(calculateFuel(12) == 2)
+        assert(calculateFuel(14) == 2)
+        assert(calculateFuel(100756) == 33583)
+
+        assert(calculateFuelDifferential(14) == 2) { "Mismatch on 14" }
+        assert(calculateFuelDifferential(1969) == 966) { "Mismatch on 1969" }
+        assert(calculateFuelDifferential(100756) == 50346) { "Mismatch on 100756" }
+
     }
 }
 
-fun tests() {
-    assert(calculateFuel(12) == 2)
-    assert(calculateFuel(14) == 2)
-    assert(calculateFuel(100756) == 33583)
-
-    assert(calculateFuelDifferential(14) == 2) { "Mismatch on 14" }
-    assert(calculateFuelDifferential(1969) == 966) { "Mismatch on 1969" }
-    assert(calculateFuelDifferential(100756) == 50346) { "Mismatch on 100756" }
-}
 
 fun main() {
     tests()
