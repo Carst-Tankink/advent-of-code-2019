@@ -7,7 +7,7 @@ fun calculateFuelDifferential(mass: Int): Int {
 
     return when {
         initialFuel <= 0 -> 0
-        else -> initialFuel + calculateFuelDifferential(initialFuel.toInt())
+        else -> initialFuel + calculateFuelDifferential(initialFuel)
     }
 }
 
