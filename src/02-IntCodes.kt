@@ -126,4 +126,3 @@ fun main() {
 
     println("Final result: ${100 * result2.first + result2.second}")
 }
-
