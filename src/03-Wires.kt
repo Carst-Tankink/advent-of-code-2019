@@ -1,10 +1,21 @@
 import Direction.*
-import Wires.tests
 import java.io.File
 import kotlin.math.abs
 
 enum class Direction {
-    UP, DOWN, LEFT, RIGHT
+    UP, DOWN, LEFT, RIGHT;
+
+    companion object {
+        fun parse(char: Char): Direction {
+            return when (char) {
+                'U' -> UP
+                'D' -> DOWN
+                'L' -> LEFT
+                'R' -> RIGHT
+                else -> throw Exception("Unexpected input $char")
+            }
+        }
+    }
 }
 
 data class Location(val x: Int, val y: Int) {
@@ -15,7 +26,16 @@ data class Location(val x: Int, val y: Int) {
         )
 }
 
-data class Stretch(val direction: Direction, val start: Location, val end: Location)
+data class Stretch(val direction: Direction, val start: Location, val end: Location, val distanceOnWire: Int) {
+    fun flip(): Stretch {
+        return Stretch(
+            direction,
+            start = end,
+            end = start,
+            distanceOnWire = distanceOnWire
+        )
+    }
+}
 
 data class Wire(val stretches: List<Stretch>) {
 
@@ -23,100 +43,90 @@ data class Wire(val stretches: List<Stretch>) {
         fun parse(from: String): Wire =
             Wire(
                 stretches = from.split(",")
-                    .map { x ->
-                        val distance = x.substring(1).toInt()
-                        val direction = when (x[0]) {
-                            'U' -> UP
-                            'D' -> DOWN
-                            'L' -> LEFT
-                            'R' -> RIGHT
-                            else -> throw Exception("Unexpected input ${x[0]}")
+                    .fold(emptyList()) { stretches, descriptor ->
+                        val (start, currentDistance) = if (stretches.isEmpty()) {
+                            Pair(Location(0, 0), 0)
+                        } else {
+                            val previous = stretches.last()
+                            Pair(previous.end, previous.distanceOnWire)
                         }
+
+                        val direction = Direction.parse(descriptor[0])
+                        val distance = descriptor.substring(1).toInt()
 
                         val endPos = when (direction) {
-                            UP -> Location(0, distance)
-                            DOWN -> Location(0, -1 * distance)
-                            RIGHT -> Location(distance, 0)
-                            LEFT -> Location(-1 * distance, 0)
-
+                            UP -> Location(start.x, start.y + distance)
+                            DOWN -> Location(start.x, start.y - distance)
+                            RIGHT -> Location(start.x + distance, start.y)
+                            LEFT -> Location(start.x - distance, start.y)
                         }
 
-                        Stretch(direction, Location(0, 0), endPos)
+                        stretches + Stretch(direction, start, endPos, currentDistance + distance)
                     }
             )
     }
 }
 
-
-object Wires {
-
-    fun tests() {
-
-    }
-}
-
 fun main() {
-    tests()
-    val inputs: List<Wire> = File("resources/03-input")
+    val isHorizontal: (Stretch) -> Boolean = { stretch -> stretch.direction == LEFT || stretch.direction == RIGHT }
+    val inputs: List<Pair<List<Stretch>, List<Stretch>>> = File("resources/03-input")
         .readLines()
         .map { x -> Wire.parse(x) }
+        .map { wire -> wire.stretches.partition(isHorizontal) }
 
-    assert(inputs.size == 2)
+    val intersections1 = findIntersections(inputs[0].first, inputs[1].second)
+    val intersections2 = findIntersections(inputs[1].first, inputs[0].second)
 
-    val translated = inputs.map { wire ->
-        val translatedStretches: List<Stretch> = wire.stretches.fold(emptyList()) { acc, stretch ->
-            val previousEnd = if (acc.isEmpty()) Location(0, 0) else acc.last().end
-            acc + Stretch(stretch.direction, stretch.start + previousEnd, stretch.end + previousEnd)
-        }
-
-        Wire(translatedStretches)
-    }
-
-    val wire1 = translated[0]
-    println("Wire1: $wire1")
-    val wire2 = translated[1]
-    println("Wire2: $wire2")
-
-    val isHorizontal: (Stretch) -> Boolean = { stretch -> stretch.direction == LEFT || stretch.direction == RIGHT }
-    val wire1Partitions = wire1.stretches.partition(isHorizontal)
-    println("partitions: $wire1Partitions")
-    val wire2Partitions = wire2.stretches.partition(isHorizontal)
-
-    val intersections: List<Location> = findIntersections(wire1Partitions.first, wire2Partitions.second)
-    val intersections2: List<Location> = findIntersections(wire2Partitions.first, wire1Partitions.second)
-
-    println("Instersections: $intersections")
-    println("Instersections: $intersections2")
-    val shortestDistance = (intersections + intersections2)
-        .filter { l -> l != Location(0, 0) }
-        .map { l -> abs(l.x) + abs(l.y) }
+    val intersections = intersections1 + intersections2
+    val manahattanDistances = intersections
+        .map { l -> abs(l.first.x) + abs(l.first.y) }
         .sorted()
 
-    println("Shortest distance to intersection: $shortestDistance")
+    println("Shortest Manhattan distance to intersection: ${manahattanDistances[0]}")
+
+    val wireDistances = intersections
+        .map { l -> l.second }
+        .sorted()
+
+    println("Shortest wire distance to intersection: ${wireDistances[0]}")
 
 }
 
-fun findIntersections(horizontals: List<Stretch>, verticals: List<Stretch>): List<Location> {
+fun findIntersections(horizontals: List<Stretch>, verticals: List<Stretch>): List<Pair<Location, Int>> {
 
     val horizontalsAscending = horizontals.map { stretch ->
-        if (stretch.start.x < stretch.end.x) stretch else Stretch(
-            stretch.direction,
-            stretch.end,
-            stretch.start
-        )
+        if (stretch.direction == RIGHT) stretch else stretch.flip()
     }
     val verticalsAscending = verticals.map { stretch ->
-        if (stretch.start.y < stretch.end.y) stretch else Stretch(
-            stretch.direction,
-            stretch.end,
-            stretch.start
-        )
+        if (stretch.direction == UP) stretch else stretch.flip()
     }
 
     return horizontalsAscending.flatMap { h ->
         verticalsAscending
             .filter { h.start.x <= it.start.x && it.start.x <= h.end.x }
             .filter { it.start.y <= h.start.y && h.start.y <= it.end.y }
-            .map { Location(it.start.x, h.start.y) }
+            .map { v -> Pair(Location(v.start.x, h.start.y), calculateCombinedWireDistance(h, v)) }
+            .filter { l -> l.first != Location(0, 0) }
     }
+}
+
+fun calculateCombinedWireDistance(horizontal: Stretch, vertical: Stretch): Int {
+    // Revert flips used in finding intersection
+    val normalizedHorizontal =
+        if (horizontal.direction == RIGHT) horizontal else horizontal.flip()
+    val normalizedVertical = if (vertical.direction == UP) vertical else vertical.flip()
+
+    val horizontalDistance = normalizedHorizontal.distanceOnWire - if (normalizedHorizontal.direction == RIGHT) {
+        (normalizedHorizontal.end.x - vertical.start.x)
+    } else {
+        (vertical.start.x - normalizedHorizontal.end.x)
+    }
+
+    val verticalDistance = normalizedVertical.distanceOnWire - if (normalizedVertical.direction == UP) {
+        (normalizedVertical.end.y - horizontal.start.y)
+    } else {
+        (horizontal.start.y - normalizedVertical.end.y)
+    }
+
+    return horizontalDistance + verticalDistance
 }
