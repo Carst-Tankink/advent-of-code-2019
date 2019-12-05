@@ -1,48 +1,11 @@
 import IntCodes.landOnMoon
 import IntCodes.runWithNounAndVerb
 import IntCodes.tests
+import computer.Machine
 import java.io.File
 
-data class Machine(val position: Int, val tape: List<Int>) {
-    val operation: Int = tape[position]
-}
 
 object IntCodes {
-    private fun iterateOnce(machine: Machine): Machine {
-        return when (machine.operation) {
-            1 -> doOperation(machine) { x, y -> x + y }
-            2 -> doOperation(machine) { x, y -> x * y }
-            else -> throw RuntimeException("Unexpected operation")
-        }
-    }
-
-
-    fun runProgram(machine: Machine): Machine =
-        if (machine.operation == 99) machine
-        else {
-            runProgram(iterateOnce(machine))
-        }
-
-    private fun doOperation(machine: Machine, operation: (Int, Int) -> Int): Machine {
-        val loc1 = machine.tape[machine.position + 1]
-        val loc2 = machine.tape[machine.position + 2]
-        val resultPosition = machine.tape[machine.position + 3]
-
-        val newTape = if (resultPosition < machine.tape.size) {
-            machine.tape
-        } else {
-            machine.tape + List(resultPosition - machine.tape.size + 1) { x -> x }
-        }
-
-
-        val updatedTape = newTape.mapIndexed { index, value ->
-            if (index == resultPosition) operation(machine.tape[loc1], machine.tape[loc2])
-            else value
-        }
-
-        return Machine(machine.position + 4, updatedTape)
-    }
-
     fun tests() {
         val input = listOf(
             1, 9, 10, 3,
@@ -50,7 +13,7 @@ object IntCodes {
             99, 30, 40, 50
         )
 
-        val actual = iterateOnce(Machine(0, input)).tape
+        val actual = Machine().runSingle(input).second
         assert(
             actual == listOf(
                 1, 9, 10, 70,
@@ -75,9 +38,9 @@ object IntCodes {
     }
 
     private fun testProgram(input: List<Int>, expected: List<Int>) {
-        val final = runProgram(Machine(0, input))
+        val final = Machine().run(input)
         assert(
-            final.tape == expected
+            final == expected
         ) { "Mismatch. Input: $input, expected $expected actual: $final" }
     }
 
@@ -94,7 +57,7 @@ object IntCodes {
             }
         }
 
-        return runProgram(Machine(0, crashTape)).tape[0]
+        return Machine().run(crashTape)[0]
     }
 
     fun landOnMoon(inputs: List<Int>): Pair<Int, Int> {
