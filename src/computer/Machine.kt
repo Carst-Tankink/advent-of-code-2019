@@ -10,7 +10,7 @@ data class Machine(val position: Int = 0) {
 
         companion object {
             fun fromCode(code: Int): Operation {
-                return values().findLast { op -> op.code == code }!!
+                return values().findLast { op -> op.code == (code % 100) }!!
             }
         }
     }
@@ -34,7 +34,8 @@ data class Machine(val position: Int = 0) {
     }
 
     private fun runInternal(tape: List<Int>): Pair<Machine, List<Int>> {
-        return when (Operation.fromCode(tape[position])) {
+        val opCode = tape[position]
+        return when (Operation.fromCode(opCode)) {
             Operation.HALT -> Pair(this, tape)
             else -> {
                 val (newMachine, newTape) = runSingle(tape)
@@ -54,29 +55,43 @@ data class Machine(val position: Int = 0) {
     }
 
     private fun doBinaryOperation(tape: List<Int>, operation: (Int, Int) -> Int): Pair<Machine, List<Int>> {
-        val loc1 = tape[position + 1]
-        val loc2 = tape[position + 2]
+        val mode1 = (tape[position] / 100) % 10
+        val mode2 = (tape[position] / 1000) % 10
+        val value1 = tape[position + 1]
+        val value2 = tape[position + 2]
 
-        val result = operation(tape[loc1], tape[loc2])
+        val op1 = readData(mode1, tape, value1)
+        val op2 = readData(mode2, tape, value2)
 
-
+        val result = operation(op1, op2)
         val resultPosition = tape[position + 3]
         val updatedTape = updateTape(resultPosition, tape, result)
 
         return Pair(copy(position = position + 4), updatedTape)
     }
 
+    private fun readData(mode1: Int, tape: List<Int>, value1: Int): Int {
+        return when (mode1) {
+            0 -> tape[value1]
+            1 -> value1
+            else -> -42
+        }
+    }
+
     private fun doSave(tape: List<Int>): Pair<Machine, List<Int>> {
         val savePosition = tape[position + 1]
-        val input = 0 // TODO
+        println("Please provide input: ")
+        val input = readLine()?.toInt()!!
 
         return Pair(Machine(position + 2), updateTape(savePosition, tape, input))
 
     }
 
     private fun doOutput(tape: List<Int>): Pair<Machine, List<Int>> {
-        val output = tape[position + 1]
+        val mode = (tape[position] / 100) % 10
+        val output = readData(mode, tape, tape[position + 1])
 
+        println("Output: $output")
         return Pair(Machine(position + 2), tape)
     }
 
