@@ -1,6 +1,12 @@
 package computer
 
-data class Machine(val position: Int = 0) {
+val defaultReader: () -> Int = {
+    println("Please provide input:")
+    readLine()!!.toInt()
+}
+val defaultOutput: (Int) -> Unit = { println(it) }
+
+data class Machine(val position: Int = 0, val input: () -> Int = defaultReader, val output: (Int) -> Unit = defaultOutput) {
     enum class Operation(val code: Int) {
         ADD(1),
         MUL(2),
@@ -65,7 +71,7 @@ data class Machine(val position: Int = 0) {
     private fun doJump(tape: List<Int>, test: (Int) -> Boolean): Pair<Machine, List<Int>> {
         val params = readArgs(tape, 2)
         val newPosition = if (test(params[0])) params[1] else position + 3
-        return Pair(Machine(newPosition), tape)
+        return Pair(copy(position = newPosition), tape)
     }
 
     private fun readArgsRec(
@@ -109,17 +115,18 @@ data class Machine(val position: Int = 0) {
 
     private fun doSave(tape: List<Int>): Pair<Machine, List<Int>> {
         val savePosition = tape[position + 1]
-        println("Please provide input: ")
-        val input = readLine()?.toInt()!!
-
-        return Pair(Machine(position + 2), updateTape(savePosition, tape, input))
+        val inputData = input()
+        return Pair(
+            copy(position = position + 2),
+            updateTape(savePosition, tape, inputData)
+        )
 
     }
 
     private fun doOutput(tape: List<Int>): Pair<Machine, List<Int>> {
-        val output = readArgs(tape, 1)[0]
-        println("Output: $output")
-        return Pair(Machine(position + 2), tape)
+        val outputData = readArgs(tape, 1)[0]
+        output(outputData)
+        return Pair(copy(position = position + 2), tape)
     }
 
     fun run(tape: List<Int>): List<Int> = runInternal(tape).second
