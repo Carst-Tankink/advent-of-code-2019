@@ -7,7 +7,7 @@ import java.io.File
 
 object IntCodes {
     fun tests() {
-        val input = listOf(
+        val input: List<Long> = listOf(
             1, 9, 10, 3,
             2, 3, 11, 0,
             99, 30, 40, 50
@@ -23,7 +23,7 @@ object IntCodes {
             )
         ) { "Mismatch, actual: $actual" }
 
-        val expected = listOf(
+        val expected: List<Long> = listOf(
             3500, 9, 10, 70,
             2, 3, 11, 0,
             99,
@@ -37,7 +37,7 @@ object IntCodes {
         testProgram(listOf(1, 1, 1, 4, 99, 5, 6, 0, 99), listOf(30, 1, 1, 4, 2, 5, 6, 0, 99))
     }
 
-    private fun testProgram(input: List<Int>, expected: List<Int>) {
+    private fun testProgram(input: List<Long>, expected: List<Long>) {
         val final = Machine().run(input)
         assert(
             final == expected
@@ -45,10 +45,10 @@ object IntCodes {
     }
 
     fun runWithNounAndVerb(
-        inputs: List<Int>,
-        noun: Int,
-        verb: Int
-    ): Int {
+        inputs: List<Long>,
+        noun: Long,
+        verb: Long
+    ): Long {
         val crashTape = inputs.mapIndexed { i, v ->
             when (i) {
                 1 -> noun
@@ -60,13 +60,13 @@ object IntCodes {
         return Machine().run(crashTape)[0]
     }
 
-    fun landOnMoon(inputs: List<Int>): Pair<Int, Int> {
+    fun landOnMoon(inputs: List<Long>): Pair<Int, Int> {
         val verbs = 0.rangeTo(99)
         val nouns = 0.rangeTo(99)
 
         for (verb in verbs) for (noun in nouns) {
-            val result = runWithNounAndVerb(inputs, noun, verb)
-            if (result == 19690720) return Pair(noun, verb)
+            val result = runWithNounAndVerb(inputs, noun.toLong(), verb.toLong())
+            if (result == 1969072L) return Pair(noun, verb)
         }
 
         throw Exception("No match found")
@@ -80,7 +80,7 @@ fun main() {
     val inputs = File("resources/02-input")
         .readLines()
         .flatMap { x -> x.split(",") }
-        .map(String::toInt)
+        .map(String::toLong)
 
     val result = runWithNounAndVerb(inputs, 12, 2)
     println("Result $result")

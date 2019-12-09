@@ -5,7 +5,7 @@ fun main() {
     val program = File("resources/07-input")
         .readLines()
         .flatMap { x -> x.split(",") }
-        .map(String::toInt)
+        .map(String::toLong)
 
     val maxSignal = computePermutations(listOf(0, 1, 2, 3, 4))
         .map { ampSettings ->
@@ -36,21 +36,21 @@ fun computePermutations(inputs: List<Int>): List<List<Int>> {
 
 private fun runAmplifiers(
     ampSettings: List<Int>,
-    program: List<Int>
-): Int {
+    program: List<Long>
+): Long {
     var inputState = 0
 
-    fun getInputFunction(ampSetting: Int, inputValue: Int): () -> Int = {
+    fun getInputFunction(ampSetting: Int, inputValue: Long): () -> Long = {
         if (inputState == 0) {
             inputState = 1
-            ampSetting
+            ampSetting.toLong()
         } else {
             inputState = 0
             inputValue
         }
     }
 
-    var finalResult = -1
+    var finalResult: Long = -1
     val ampA = Machine(input = getInputFunction(ampSettings[0], 0), output = { signal1 ->
         val ampB = Machine(input = getInputFunction(ampSettings[1], signal1), output = { signal2 ->
             val ampC = Machine(input = getInputFunction(ampSettings[2], signal2), output = { signal3 ->
