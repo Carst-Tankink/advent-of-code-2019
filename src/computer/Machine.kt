@@ -121,8 +121,12 @@ data class Machine(
 
     private fun readData(mode: Int, tape: List<Int>, value: Int): Int {
         return when (mode) {
-            0 -> tape[value]
+            0 -> if (value < tape.size) tape[value] else 0
             1 -> value
+            2 -> {
+                val index = relativeBase + value
+                if (index < tape.size) tape[index] else 0
+            }
             else -> throw Exception("Unexpected mode: $mode")
         }
     }
