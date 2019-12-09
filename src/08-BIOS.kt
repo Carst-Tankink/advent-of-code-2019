@@ -16,18 +16,20 @@ fun main() {
 
     println("Checksum $checkSum")
 
-    decode(layers, width, height)
+    val decoded = decode(layers, width, height)
+    printDecoded(decoded, width)
 }
 
 
-fun decode(layers: List<List<Int>>, width: Int, height: Int) {
-    for (y in 0 until height) {
-        for (x in 0 until width) {
-            val index = y * width + x
-            val pixel = layers.find{ l -> l[index] != 2 }!![index]
-            print(if (pixel == 0) ' ' else '*')
-        }
+fun decode(layers: List<List<Int>>, width: Int, height: Int): List<Int> {
+    val initial: List<Int> = List(width * height) { 2 }
+    return layers.fold(initial) {acc, layer -> acc.zip(layer) {x, y -> if (x == 2) y else x} }
+}
 
-        print('\n')
-    }
+private fun printDecoded(decoded: List<Int>, width: Int) {
+    decoded
+        .map { if (it == 0) ' ' else '*' }
+        .chunked(width)
+        .map { it.toCharArray() }
+        .forEach{println(it)}
 }
