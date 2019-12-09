@@ -1,12 +1,19 @@
 package computer
 
+import java.lang.Exception
+
 val defaultReader: () -> Int = {
     println("Please provide input:")
     readLine()!!.toInt()
 }
 val defaultOutput: (Int) -> Unit = { println(it) }
 
-data class Machine(val position: Int = 0, val input: () -> Int = defaultReader, val output: (Int) -> Unit = defaultOutput) {
+data class Machine(
+    val position: Int = 0,
+    val input: () -> Int = defaultReader,
+    val output: (Int) -> Unit = defaultOutput,
+    val relativeBase: Int = 0
+) {
     enum class Operation(val code: Int) {
         ADD(1),
         MUL(2),
@@ -16,6 +23,7 @@ data class Machine(val position: Int = 0, val input: () -> Int = defaultReader, 
         JUMPIFFALSE(6),
         LESSTHAN(7),
         EQUALS(8),
+        ADJUST_BASE(9),
         HALT(99);
 
         companion object {
@@ -64,8 +72,14 @@ data class Machine(val position: Int = 0, val input: () -> Int = defaultReader, 
             Operation.JUMPIFFALSE -> doJump(tape) { x -> x == 0 }
             Operation.LESSTHAN -> doBinaryOperation(tape) { x, y -> if (x < y) 1 else 0 }
             Operation.EQUALS -> doBinaryOperation(tape) { x, y -> if (x == y) 1 else 0 }
+            Operation.ADJUST_BASE -> doAdjustBase(tape)
             Operation.HALT -> Pair(this, tape)
         }
+    }
+
+    private fun doAdjustBase(tape: List<Int>): Pair<Machine, List<Int>> {
+        val baseAdjustment = readArgs(tape, 1)[0]
+        return Pair(copy(position = position + 2, relativeBase = relativeBase + baseAdjustment), tape)
     }
 
     private fun doJump(tape: List<Int>, test: (Int) -> Boolean): Pair<Machine, List<Int>> {
@@ -105,11 +119,11 @@ data class Machine(val position: Int = 0, val input: () -> Int = defaultReader, 
         return Pair(copy(position = position + 4), updatedTape)
     }
 
-    private fun readData(mode1: Int, tape: List<Int>, value1: Int): Int {
-        return when (mode1) {
-            0 -> tape[value1]
-            1 -> value1
-            else -> -42
+    private fun readData(mode: Int, tape: List<Int>, value: Int): Int {
+        return when (mode) {
+            0 -> tape[value]
+            1 -> value
+            else -> throw Exception("Unexpected mode: $mode")
         }
     }
 
