@@ -2,24 +2,42 @@ import computer.Machine
 import java.io.File
 
 fun main() {
-    val _program = File("resources/07-input")
+    val program = File("resources/07-input")
         .readLines()
         .flatMap { x -> x.split(",") }
         .map(String::toInt)
 
-    val program = listOf(
-        3,23,3,24,1002,24,10,24,1002,23,-1,23,
-        101,5,23,23,1,24,23,23,4,23,99,0,0
-    )
-    val ampSettings = listOf(0,1,2,3,4)
+    val maxSignal = computePermutations(listOf(0, 1, 2, 3, 4))
+        .map { ampSettings ->
+            runAmplifiers(ampSettings, program)
+        }
+        .max()
 
-    runAmplifiers(ampSettings, program)
+    println("Max signal: $maxSignal")
+}
+
+fun computePermutations(inputs: List<Int>): List<List<Int>> {
+    return when {
+        inputs.size <= 1 -> listOf(inputs)
+        else -> {
+            val current: ArrayList<List<Int>> = ArrayList()
+            for (value in inputs) {
+                val subPermutations: List<List<Int>> = computePermutations(inputs - value)
+                for (perm in subPermutations) {
+                    val permWithValue: List<Int> = listOf(value) + perm
+                    current += permWithValue
+                }
+            }
+
+            current
+        }
+    }
 }
 
 private fun runAmplifiers(
     ampSettings: List<Int>,
     program: List<Int>
-) {
+): Int {
     var inputState = 0
 
     fun getInputFunction(ampSetting: Int, inputValue: Int): () -> Int = {
@@ -32,11 +50,14 @@ private fun runAmplifiers(
         }
     }
 
+    var finalResult = -1
     val ampA = Machine(input = getInputFunction(ampSettings[0], 0), output = { signal1 ->
         val ampB = Machine(input = getInputFunction(ampSettings[1], signal1), output = { signal2 ->
             val ampC = Machine(input = getInputFunction(ampSettings[2], signal2), output = { signal3 ->
                 val ampD = Machine(input = getInputFunction(ampSettings[3], signal3), output = { signal4 ->
-                    val ampE = Machine(input = getInputFunction(ampSettings[4], signal4))
+                    val ampE = Machine(input = getInputFunction(ampSettings[4], signal4), output = {
+                        finalResult = it
+                    })
                     ampE.run(program)
                 })
                 ampD.run(program)
@@ -46,4 +67,6 @@ private fun runAmplifiers(
         ampB.run(program)
     })
     ampA.run(program)
+
+    return finalResult
 }
