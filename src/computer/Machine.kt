@@ -1,15 +1,14 @@
 package computer
 
-val defaultReader: () -> Long = {
-    println("Please provide input:")
-    readLine()!!.toLong()
-}
-val defaultOutput: (Long) -> Unit = { println(it) }
+sealed class State
+object Halt: State()
+object Input: State()
+object Output: State()
 
 data class Machine(
     val position: Int = 0,
-    val input: () -> Long = defaultReader,
-    val output: (Long) -> Unit = defaultOutput,
+    var input: Long = 0L,
+    val output: Long = 0L,
     val relativeBase: Int = 0
 ) {
     enum class Operation(val code: Long) {
@@ -31,7 +30,6 @@ data class Machine(
         }
     }
 
-
     private fun updateTape(
         resultPosition: Int,
         tape: List<Long>,
@@ -44,32 +42,6 @@ data class Machine(
             tape
         } else {
             tape + List(resultPosition - tape.size + 1) { x -> x.toLong() }
-        }
-    }
-
-    private fun runInternal(tape: List<Long>): Pair<Machine, List<Long>> {
-        val opCode = tape[position]
-        return when (Operation.fromCode(opCode)) {
-            Operation.HALT -> Pair(this, tape)
-            else -> {
-                val (newMachine, newTape) = runSingle(tape)
-                newMachine.runInternal(newTape)
-            }
-        }
-    }
-
-    fun runSingle(tape: List<Long>): Pair<Machine, List<Long>> {
-        return when (Operation.fromCode(tape[position])) {
-            Operation.ADD -> doBinaryOperation(tape) { x, y -> x + y }
-            Operation.MUL -> doBinaryOperation(tape) { x, y -> x * y }
-            Operation.SAVE -> doSave(tape)
-            Operation.OUTPUT -> doOutput(tape)
-            Operation.JUMPIFTRUE -> doJump(tape) { x -> x != 0L }
-            Operation.JUMPIFFALSE -> doJump(tape) { x -> x == 0L }
-            Operation.LESSTHAN -> doBinaryOperation(tape) { x, y -> if (x < y) 1 else 0 }
-            Operation.EQUALS -> doBinaryOperation(tape) { x, y -> if (x == y) 1 else 0 }
-            Operation.ADJUST_BASE -> doAdjustBase(tape)
-            Operation.HALT -> Pair(this, tape)
         }
     }
 
@@ -129,7 +101,7 @@ data class Machine(
 
     private fun doSave(tape: List<Long>): Pair<Machine, List<Long>> {
         val savePosition = tape[position + 1]
-        val inputData = input()
+        val inputData = input
         return Pair(
             copy(position = position + 2),
             updateTape(savePosition.toInt(), tape, inputData)
@@ -139,9 +111,44 @@ data class Machine(
 
     private fun doOutput(tape: List<Long>): Pair<Machine, List<Long>> {
         val outputData = readArgs(tape, 1)[0]
-        output(outputData)
-        return Pair(copy(position = position + 2), tape)
+        return Pair(copy(position = position + 2, output = outputData), tape)
     }
 
+    fun runSingle(tape: List<Long>): Pair<Machine, List<Long>> {
+        return when (Operation.fromCode(tape[position])) {
+            Operation.ADD -> doBinaryOperation(tape) { x, y -> x + y }
+            Operation.MUL -> doBinaryOperation(tape) { x, y -> x * y }
+            Operation.SAVE -> doSave(tape)
+            Operation.OUTPUT -> doOutput(tape)
+            Operation.JUMPIFTRUE -> doJump(tape) { x -> x != 0L }
+            Operation.JUMPIFFALSE -> doJump(tape) { x -> x == 0L }
+            Operation.LESSTHAN -> doBinaryOperation(tape) { x, y -> if (x < y) 1 else 0 }
+            Operation.EQUALS -> doBinaryOperation(tape) { x, y -> if (x == y) 1 else 0 }
+            Operation.ADJUST_BASE -> doAdjustBase(tape)
+            Operation.HALT -> Pair(this, tape)
+        }
+    }
+
+    fun runInternal(tape: List<Long>): Triple<Machine, List<Long>, State> {
+        val opCode = tape[position]
+        return when (Operation.fromCode(opCode)) {
+            Operation.HALT -> Triple(this, tape, Halt)
+            Operation.SAVE -> Triple(this, tape, Input)
+            Operation.OUTPUT -> {
+                val (newMachine, newTape) = runSingle(tape)
+                Triple(newMachine, newTape, Output)
+            }
+            else -> {
+                val (newMachine, newTape) = runSingle(tape)
+                newMachine.runInternal(newTape)
+            }
+        }
+    }
+
+    fun input(input: Long, tape: List<Long>): Triple<Machine, List<Long>, State> {
+        this.input = input
+        val (newMachine, newTape) = doSave(tape)
+        return newMachine.runInternal(newTape)
+    }
     fun run(tape: List<Long>): List<Long> = runInternal(tape).second
 }

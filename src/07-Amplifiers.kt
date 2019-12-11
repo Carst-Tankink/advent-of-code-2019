@@ -1,4 +1,3 @@
-import computer.Machine
 import java.io.File
 
 fun main() {
@@ -51,7 +50,7 @@ private fun runAmplifiers(
     }
 
     var finalResult: Long = -1
-    val ampA = Machine(input = getInputFunction(ampSettings[0], 0), output = { signal1 ->
+    /*val ampA = Machine(input = getInputFunction(ampSettings[0], 0), output = { signal1 ->
         val ampB = Machine(input = getInputFunction(ampSettings[1], signal1), output = { signal2 ->
             val ampC = Machine(input = getInputFunction(ampSettings[2], signal2), output = { signal3 ->
                 val ampD = Machine(input = getInputFunction(ampSettings[3], signal3), output = { signal4 ->
@@ -66,7 +65,7 @@ private fun runAmplifiers(
         })
         ampB.run(program)
     })
-    ampA.run(program)
-
+        ampA.run(program)
+*/
     return finalResult
 }
