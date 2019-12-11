@@ -16,7 +16,7 @@ object IntCodes {
         val actual = Machine().runSingle(input).second
         assert(
             actual == listOf(
-                1, 9, 10, 70,
+                1L, 9, 10, 70,
                 2, 3, 11, 0,
                 99,
                 30, 40, 50
@@ -66,7 +66,7 @@ object IntCodes {
 
         for (verb in verbs) for (noun in nouns) {
             val result = runWithNounAndVerb(inputs, noun.toLong(), verb.toLong())
-            if (result == 1969072L) return Pair(noun, verb)
+            if (result == 19690720L) return Pair(noun, verb)
         }
 
         throw Exception("No match found")
