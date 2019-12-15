@@ -1,4 +1,5 @@
-import computer.*
+import computer.Machine
+import computer.State
 import java.io.File
 
 fun main() {
@@ -7,26 +8,25 @@ fun main() {
         .flatMap { x -> x.split(",") }
         .map(String::toLong)
 
+    runRecursive(Machine(codes), 1)
+    runRecursive(Machine(codes), 5)
+}
 
-    var (machine, tape, state) = Machine().runInternal(codes)
-// TODO: Make this recursive
-    while (state != Halt) {
-        when (state) {
-            Input -> {
-                println("Please provide input")
-                val input = readLine()!!.toLong()
-                val (newMachine, newTape, newState) = machine.input(input, codes)
-                machine = newMachine
-                tape = newTape
-                state = newState
-            }
-            is Output -> {
-                println(machine.output)
-                val machineState = machine.runInternal(tape)
-                machine = machineState.first
-                tape = machineState.second
-                state = machineState.third
-            }
+fun runRecursive(machine: Machine, input: Long) {
+    when (machine.state) {
+        State.Halt -> return
+        State.Input -> {
+            val newMachine = machine.input(input)
+            runRecursive(newMachine, input)
+        }
+        State.Output -> {
+            println("OUT: ${machine.output}")
+            val newMachine = machine.output()
+            runRecursive(newMachine, input)
+        }
+        State.Running -> {
+            val newMachine = machine.run()
+            runRecursive(newMachine, input)
         }
     }
 }

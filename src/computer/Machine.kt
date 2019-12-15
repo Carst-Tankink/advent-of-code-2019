@@ -1,15 +1,15 @@
 package computer
 
-sealed class State
-object Halt: State()
-object Input: State()
-object Output: State()
+enum class State {
+    Halt, Input, Output, Running
+}
 
 data class Machine(
+    val memory: List<Long>,
     val position: Int = 0,
-    var input: Long = 0L,
     val output: Long = 0L,
-    val relativeBase: Int = 0
+    val relativeBase: Int = 0,
+    val state: State = State.Running
 ) {
     enum class Operation(val code: Long) {
         ADD(1),
@@ -30,34 +30,32 @@ data class Machine(
         }
     }
 
-    private fun updateTape(
+    private fun updateMemory(
         resultPosition: Int,
-        tape: List<Long>,
         result: Long
-    ) = resizeTape(resultPosition, tape)
+    ) = resizeMemory(resultPosition)
         .mapIndexed { index, value -> if (index == resultPosition) result else value }
 
-    private fun resizeTape(resultPosition: Int, tape: List<Long>): List<Long> {
-        return if (resultPosition < tape.size) {
-            tape
+    private fun resizeMemory(resultPosition: Int): List<Long> {
+        return if (resultPosition < memory.size) {
+            memory
         } else {
-            tape + List(resultPosition - tape.size + 1) { x -> x.toLong() }
+            memory + List(resultPosition - memory.size + 1) { x -> x.toLong() }
         }
     }
 
-    private fun doAdjustBase(tape: List<Long>): Pair<Machine, List<Long>> {
-        val baseAdjustment = readArgs(tape, 1)[0].toInt()
-        return Pair(copy(position = position + 2, relativeBase = relativeBase + baseAdjustment), tape)
+    private fun doAdjustBase(): Machine {
+        val baseAdjustment = readArgs(1)[0].toInt()
+        return copy(position = position + 2, relativeBase = relativeBase + baseAdjustment)
     }
 
-    private fun doJump(tape: List<Long>, test: (Long) -> Boolean): Pair<Machine, List<Long>> {
-        val params = readArgs(tape, 2)
+    private fun doJump(test: (Long) -> Boolean): Machine {
+        val params = readArgs(2)
         val newPosition = if (test(params[0])) params[1].toInt() else position + 3
-        return Pair(copy(position = newPosition), tape)
+        return copy(position = newPosition)
     }
 
     private fun readArgsRec(
-        tape: List<Long>,
         opcode: Long,
         count: Int,
         acc: List<Long>,
@@ -67,88 +65,74 @@ data class Machine(
             acc
         } else {
             val mode = opcode % 10
-            val param = tape[position + (totalArgs - (count - 1))]
-            val data = readData(mode.toInt(), tape, param)
-            readArgsRec(tape, opcode / 10, count - 1, acc + data, totalArgs)
+            val param = memory[position + (totalArgs - (count - 1))]
+            val data = readData(mode.toInt(), param)
+            readArgsRec(opcode / 10, count - 1, acc + data, totalArgs)
         }
     }
 
-    private fun readArgs(tape: List<Long>, count: Int): List<Long> =
-        readArgsRec(tape, tape[position] / 100, count, emptyList(), count)
+    private fun readArgs(count: Int): List<Long> =
+        readArgsRec(memory[position] / 100, count, emptyList(), count)
 
 
-    private fun doBinaryOperation(tape: List<Long>, operation: (Long, Long) -> Long): Pair<Machine, List<Long>> {
-        val arguments = readArgs(tape, 2)
+    private fun doBinaryOperation(operation: (Long, Long) -> Long): Machine {
+        val arguments = readArgs(2)
 
         val result = operation(arguments[0], arguments[1])
-        val resultPosition = tape[position + 3]
-        val updatedTape = updateTape(resultPosition.toInt(), tape, result)
+        val resultPosition = memory[position + 3]
+        val updatedMemory = updateMemory(resultPosition.toInt(), result)
 
-        return Pair(copy(position = position + 4), updatedTape)
+        return copy(memory = updatedMemory, position = position + 4)
     }
 
-    private fun readData(mode: Int, tape: List<Long>, value: Long): Long {
+    private fun readData(mode: Int, value: Long): Long {
         return when (mode) {
-            0 -> if (value < tape.size) tape[value.toInt()] else 0
+            0 -> if (value < memory.size) memory[value.toInt()] else 0
             1 -> value
             2 -> {
                 val index = relativeBase + value
-                if (index < tape.size) tape[index.toInt()] else 0
+                if (index < memory.size) memory[index.toInt()] else 0
             }
             else -> throw Exception("Unexpected mode: $mode")
         }
     }
 
-    private fun doSave(tape: List<Long>): Pair<Machine, List<Long>> {
-        val savePosition = tape[position + 1]
-        val inputData = input
-        return Pair(
-            copy(position = position + 2),
-            updateTape(savePosition.toInt(), tape, inputData)
-        )
-
+    private fun doSave(input: Long): Machine {
+        val savePosition = memory[position + 1]
+        val updatedMemory = updateMemory(savePosition.toInt(), input)
+        return copy(memory = updatedMemory, position = position + 2, state = State.Running)
     }
 
-    private fun doOutput(tape: List<Long>): Pair<Machine, List<Long>> {
-        val outputData = readArgs(tape, 1)[0]
-        return Pair(copy(position = position + 2, output = outputData), tape)
+    private fun doOutput(): Machine {
+        val outputData = readArgs(1)[0]
+        return copy(position = position + 2, output = outputData, state = State.Output)
     }
 
-    fun runSingle(tape: List<Long>): Pair<Machine, List<Long>> {
-        return when (Operation.fromCode(tape[position])) {
-            Operation.ADD -> doBinaryOperation(tape) { x, y -> x + y }
-            Operation.MUL -> doBinaryOperation(tape) { x, y -> x * y }
-            Operation.SAVE -> doSave(tape)
-            Operation.OUTPUT -> doOutput(tape)
-            Operation.JUMPIFTRUE -> doJump(tape) { x -> x != 0L }
-            Operation.JUMPIFFALSE -> doJump(tape) { x -> x == 0L }
-            Operation.LESSTHAN -> doBinaryOperation(tape) { x, y -> if (x < y) 1 else 0 }
-            Operation.EQUALS -> doBinaryOperation(tape) { x, y -> if (x == y) 1 else 0 }
-            Operation.ADJUST_BASE -> doAdjustBase(tape)
-            Operation.HALT -> Pair(this, tape)
+    fun runSingle(): Machine {
+        return when (Operation.fromCode(memory[position])) {
+            Operation.ADD -> doBinaryOperation { x, y -> x + y }
+            Operation.MUL -> doBinaryOperation { x, y -> x * y }
+            Operation.SAVE -> copy(state = State.Input)
+            Operation.OUTPUT -> doOutput()
+            Operation.JUMPIFTRUE -> doJump { x -> x != 0L }
+            Operation.JUMPIFFALSE -> doJump { x -> x == 0L }
+            Operation.LESSTHAN -> doBinaryOperation { x, y -> if (x < y) 1 else 0 }
+            Operation.EQUALS -> doBinaryOperation { x, y -> if (x == y) 1 else 0 }
+            Operation.ADJUST_BASE -> doAdjustBase()
+            Operation.HALT -> copy(state = State.Halt)
         }
     }
 
-    fun runInternal(tape: List<Long>): Triple<Machine, List<Long>, State> {
-        val opCode = tape[position]
-        return when (Operation.fromCode(opCode)) {
-            Operation.HALT -> Triple(this, tape, Halt)
-            Operation.SAVE -> Triple(this, tape, Input)
-            Operation.OUTPUT -> {
-                val (newMachine, newTape) = runSingle(tape)
-                Triple(newMachine, newTape, Output)
-            }
-            else -> {
-                val (newMachine, newTape) = runSingle(tape)
-                newMachine.runInternal(newTape)
-            }
-        }
+    fun run(): Machine {
+        val result = runSingle()
+        return if (result.state != State.Running) result else result.run()
     }
 
-    fun input(input: Long, tape: List<Long>): Triple<Machine, List<Long>, State> {
-        this.input = input
-        val (newMachine, newTape) = doSave(tape)
-        return newMachine.runInternal(newTape)
+    fun input(input: Long): Machine {
+        return doSave(input).run()
     }
-    fun run(tape: List<Long>): List<Long> = runInternal(tape).second
+
+    fun output(): Machine {
+        return copy(state = State.Running).run()
+    }
 }

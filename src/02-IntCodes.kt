@@ -2,6 +2,7 @@ import IntCodes.landOnMoon
 import IntCodes.runWithNounAndVerb
 import IntCodes.tests
 import computer.Machine
+import computer.State
 import java.io.File
 
 
@@ -13,7 +14,7 @@ object IntCodes {
             99, 30, 40, 50
         )
 
-        val actual = Machine().runSingle(input).second
+        val actual = Machine(input).runSingle().memory
         assert(
             actual == listOf(
                 1L, 9, 10, 70,
@@ -38,10 +39,11 @@ object IntCodes {
     }
 
     private fun testProgram(input: List<Long>, expected: List<Long>) {
-        val final = Machine().run(input)
+        val machine = Machine(input).run()
+        assert(machine.state == State.Halt)
         assert(
-            final == expected
-        ) { "Mismatch. Input: $input, expected $expected actual: $final" }
+            machine.memory == expected
+        ) { "Mismatch. Input: $input, expected $expected actual: ${machine.memory}" }
     }
 
     fun runWithNounAndVerb(
@@ -57,7 +59,7 @@ object IntCodes {
             }
         }
 
-        return Machine().run(crashTape)[0]
+        return Machine(crashTape).run().memory[0]
     }
 
     fun landOnMoon(inputs: List<Long>): Pair<Int, Int> {
