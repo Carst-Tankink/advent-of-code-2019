@@ -102,7 +102,6 @@ data class Machine(
     }
 
     private fun doSave(input: Long): Machine {
-        println("Saving. Relative base is now: $relativeBase")
         val resultMode = (memory[position] / 100) % 10
         val savePosition = memory[position + 1]
         val updatedMemory = updateMemory(savePosition.toInt(), resultMode.toInt(), input)
