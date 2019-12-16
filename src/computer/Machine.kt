@@ -98,6 +98,7 @@ data class Machine(
     }
 
     private fun doSave(input: Long): Machine {
+        println("Saving. Relative base is now: $relativeBase")
         val savePosition = memory[position + 1]
         val updatedMemory = updateMemory(savePosition.toInt(), input)
         return copy(memory = updatedMemory, position = position + 2, state = State.Running)
@@ -120,6 +121,22 @@ data class Machine(
             Operation.EQUALS -> doBinaryOperation { x, y -> if (x == y) 1 else 0 }
             Operation.ADJUST_BASE -> doAdjustBase()
             Operation.HALT -> copy(state = State.Halt)
+        }
+    }
+
+    fun runRecursive(inputs: List<Long>, outputFun: (Long) -> Unit) {
+        when (state) {
+            State.Halt -> return
+            State.Input -> {
+                input(inputs[0]).runRecursive(inputs.drop(1), outputFun)
+            }
+            State.Output -> {
+                outputFun(output)
+                this.output().runRecursive(inputs, outputFun)
+            }
+            State.Running -> {
+                run().runRecursive(inputs, outputFun)
+            }
         }
     }
 

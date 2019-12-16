@@ -8,25 +8,6 @@ fun main() {
         .flatMap { x -> x.split(",") }
         .map(String::toLong)
 
-    runRecursive(Machine(codes), 1)
-    runRecursive(Machine(codes), 5)
-}
-
-fun runRecursive(machine: Machine, input: Long) {
-    when (machine.state) {
-        State.Halt -> return
-        State.Input -> {
-            val newMachine = machine.input(input)
-            runRecursive(newMachine, input)
-        }
-        State.Output -> {
-            println("OUT: ${machine.output}")
-            val newMachine = machine.output()
-            runRecursive(newMachine, input)
-        }
-        State.Running -> {
-            val newMachine = machine.run()
-            runRecursive(newMachine, input)
-        }
-    }
+    Machine(codes).runRecursive(listOf(1)) { println("OUT: $it") }
+    Machine(codes).runRecursive(listOf(5)) { println("OUT: $it") }
 }
