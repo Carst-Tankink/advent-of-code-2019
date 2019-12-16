@@ -10,4 +10,5 @@ fun main() {
     val machine = Machine(program).run()
 
     machine.runRecursive(listOf(1)) {println("OUT: $it")}
+    machine.runRecursive(listOf(2)) {println("OUT: $it")}
 }

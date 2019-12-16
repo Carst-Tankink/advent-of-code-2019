@@ -32,9 +32,13 @@ data class Machine(
 
     private fun updateMemory(
         resultPosition: Int,
+        resultMode: Int,
         result: Long
-    ) = resizeMemory(resultPosition)
-        .mapIndexed { index, value -> if (index == resultPosition) result else value }
+    ): List<Long> {
+        val writeLocation = getWritePosition(resultMode, resultPosition)
+        return resizeMemory(writeLocation)
+            .mapIndexed { index, value -> if (index == writeLocation) result else value }
+    }
 
     private fun resizeMemory(resultPosition: Int): List<Long> {
         return if (resultPosition < memory.size) {
@@ -71,16 +75,16 @@ data class Machine(
         }
     }
 
-    private fun readArgs(count: Int): List<Long> =
-        readArgsRec(memory[position] / 100, count, emptyList(), count)
+    private fun readArgs(count: Int): List<Long> = readArgsRec(memory[position] / 100, count, emptyList(), count)
 
 
     private fun doBinaryOperation(operation: (Long, Long) -> Long): Machine {
         val arguments = readArgs(2)
 
         val result = operation(arguments[0], arguments[1])
+        val resultMode = (memory[position] / 10000) % 10
         val resultPosition = memory[position + 3]
-        val updatedMemory = updateMemory(resultPosition.toInt(), result)
+        val updatedMemory = updateMemory(resultPosition.toInt(), resultMode.toInt(),  result)
 
         return copy(memory = updatedMemory, position = position + 4)
     }
@@ -99,9 +103,19 @@ data class Machine(
 
     private fun doSave(input: Long): Machine {
         println("Saving. Relative base is now: $relativeBase")
+        val resultMode = (memory[position] / 100) % 10
         val savePosition = memory[position + 1]
-        val updatedMemory = updateMemory(savePosition.toInt(), input)
+        val updatedMemory = updateMemory(savePosition.toInt(), resultMode.toInt(), input)
         return copy(memory = updatedMemory, position = position + 2, state = State.Running)
+    }
+
+    private fun getWritePosition(mode: Int, adjustment: Int): Int {
+        val offset = when (mode) {
+            0 -> 0
+            2 -> relativeBase
+            else -> throw Exception("Unexpected write mode: $mode")
+        }
+        return offset + adjustment
     }
 
     private fun doOutput(): Machine {
@@ -141,8 +155,11 @@ data class Machine(
     }
 
     fun run(): Machine {
-        val result = runSingle()
-        return if (result.state != State.Running) result else result.run()
+        tailrec fun rec(machine: Machine): Machine {
+            return if (machine.state != State.Running) machine else rec(machine.runSingle())
+        }
+
+        return rec(this)
     }
 
     fun input(input: Long): Machine {
