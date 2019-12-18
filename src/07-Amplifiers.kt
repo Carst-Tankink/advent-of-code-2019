@@ -76,7 +76,7 @@ fun runAmplifiersRecursive(amplifiers: List<Machine>, lastOutput: Long): List<Ma
     val ampCRun = runUntilOutput(amplifiers[2], ampBRun.output)
     val ampDRun = runUntilOutput(amplifiers[3], ampCRun.output)
     val ampERun = runUntilOutput(amplifiers[4], ampDRun.output)
-    return listOf(ampARun.output(), ampBRun.output(), ampCRun.output(), ampDRun.output(), ampERun.output())
+    return listOf(ampARun.cont(), ampBRun.cont(), ampCRun.cont(), ampDRun.cont(), ampERun.cont())
 }
 
 fun runUntilOutput(amplifier: Machine, input: Long): Machine {

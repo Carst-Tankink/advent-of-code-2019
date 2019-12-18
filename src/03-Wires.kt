@@ -1,30 +1,8 @@
-import Direction.*
+import util.Direction
+import util.Direction.*
+import util.Location
 import java.io.File
 import kotlin.math.abs
-
-enum class Direction {
-    UP, DOWN, LEFT, RIGHT;
-
-    companion object {
-        fun parse(char: Char): Direction {
-            return when (char) {
-                'U' -> UP
-                'D' -> DOWN
-                'L' -> LEFT
-                'R' -> RIGHT
-                else -> throw Exception("Unexpected input $char")
-            }
-        }
-    }
-}
-
-data class Location(val x: Int, val y: Int) {
-    operator fun plus(other: Location): Location =
-        Location(
-            this.x + other.x,
-            this.y + other.y
-        )
-}
 
 data class Stretch(val direction: Direction, val start: Location, val end: Location, val distanceOnWire: Int) {
     fun flip(): Stretch {

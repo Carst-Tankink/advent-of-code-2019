@@ -1,5 +1,7 @@
 package computer
 
+import java.io.File
+
 enum class State {
     Halt, Input, Output, Running
 }
@@ -11,6 +13,15 @@ data class Machine(
     val relativeBase: Int = 0,
     val state: State = State.Running
 ) {
+    companion object{
+        fun parseProgram(file: String): List<Long> {
+            return File(file)
+                .readLines()
+                .flatMap { x -> x.split(",") }
+                .map(String::toLong)
+        }
+    }
+
     enum class Operation(val code: Long) {
         ADD(1),
         MUL(2),
@@ -145,7 +156,7 @@ data class Machine(
             }
             State.Output -> {
                 outputFun(output)
-                this.output().runRecursive(inputs, outputFun)
+                this.cont().runRecursive(inputs, outputFun)
             }
             State.Running -> {
                 run().runRecursive(inputs, outputFun)
@@ -165,7 +176,7 @@ data class Machine(
         return doSave(input).run()
     }
 
-    fun output(): Machine {
+    fun cont(): Machine {
         return copy(state = State.Running).run()
     }
 }
