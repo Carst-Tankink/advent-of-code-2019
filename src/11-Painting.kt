@@ -32,14 +32,14 @@ data class Robot(
             }
             State.Input -> {
                 val currentColor = hull[location] ?: 0
-                Pair(copy(computer = computer.input(currentColor.toLong())), hull )
+                Pair(copy(computer = computer.input(currentColor.toLong())), hull)
             }
         }
     }
 }
 
 // Will return a map of all painted locations and the painted color
-fun paint(robot: Robot): Map<Location, Int> {
+fun paint(robot: Robot, initialHull: Map<Location, Int>): Map<Location, Int> {
     tailrec fun rec(robot: Robot, acc: Map<Location, Int>): Map<Location, Int> {
         return if (robot.stopped()) acc else {
             val (newRobot, newHull) = robot.step(acc)
@@ -47,14 +47,36 @@ fun paint(robot: Robot): Map<Location, Int> {
         }
     }
 
-    return rec(robot, emptyMap())
+    return rec(robot, initialHull)
 }
 
 fun main() {
     val program = Machine.parseProgram("resources/11-input")
     val robot = Robot(Machine(program))
 
-    val hull = paint(robot)
+    val hull = paint(robot, emptyMap())
 
     println("Painted: ${hull.size}")
+
+
+    val registration = paint(robot, mapOf(Pair(Location(0, 0), 1)))
+
+    val painted = registration
+        .filterValues { it == 1 }
+        .keys
+
+    val xes = painted.map { it.x }
+    val maxX = xes.max() ?: 0
+    val minX = xes.min() ?: 0
+    val ys = painted.map { it.y }
+    val maxY = ys.max() ?: 0
+    val minY = ys.min() ?: 0
+
+    for (y in maxY.downTo(minY)) {
+        for (x in minX.rangeTo(maxX)) {
+            val toPrint = if (painted.contains(Location(x, y))) "#" else " "
+            print(toPrint)
+        }
+        println()
+    }
 }
