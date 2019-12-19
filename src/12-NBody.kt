@@ -63,12 +63,58 @@ tailrec fun simulate(
     steps: Int
 ): List<Moon> {
     return if (steps == 0) system else {
-        val withNewVelocity: List<Moon> = applyGravity(system)
-        val withNewPositions: List<Moon> = withNewVelocity
-            .map { moon -> moon.move() }
-
-        simulate(withNewPositions, steps - 1)
+        simulate(step(system), steps - 1)
     }
+}
+
+private fun step(system: List<Moon>): List<Moon> {
+    val withNewVelocity: List<Moon> = applyGravity(system)
+    val withNewPositions: List<Moon> = withNewVelocity
+        .map { moon -> moon.move() }
+    return withNewPositions
+}
+
+fun simulateUntilSame(initialSystem: List<Moon>): Map<String, Long> {
+    val periods: Map<String, Long> = emptyMap()
+    return simulatePeriods(periods, initialSystem, 1, initialSystem)
+}
+
+tailrec fun simulatePeriods(
+    periods: Map<String, Long>,
+    state: List<Moon>,
+    step: Long,
+    initialSystem: List<Moon>
+): Map<String, Long> {
+    return if (periods.size == 3) periods else {
+        val newState = step(state)
+
+        val getX = { moon: Moon -> Pair(moon.position.x, moon.velocity.x) }
+        val withX = if (equalOnCoordinate(newState, getX, initialSystem)) {
+            periods + Pair("x", step)
+        } else periods
+
+        val getY = { moon: Moon -> Pair(moon.position.y, moon.velocity.y) }
+        val withY = if (equalOnCoordinate(newState, getY, initialSystem)) {
+            withX + Pair("y", step)
+        } else withX
+
+        val getZ = { moon: Moon -> Pair(moon.position.z, moon.velocity.z) }
+        val withZ = if (equalOnCoordinate(newState, getZ, initialSystem)) {
+            withY + Pair("z", step)
+        } else withY
+
+        simulatePeriods(withZ, newState, step + 1, initialSystem)
+    }
+}
+
+private fun equalOnCoordinate(
+    newState: List<Moon>,
+    getCoordinates: (Moon) -> Pair<Int, Int>,
+    initialSystem: List<Moon>
+): Boolean {
+    val xFactors = newState.map(getCoordinates)
+    val xOld = initialSystem.map(getCoordinates)
+    return xFactors.zip(xOld).all { it.first.first == it.second.first && it.first.second == it.second.second }
 }
 
 fun main() {
@@ -82,6 +128,10 @@ fun main() {
     val inMotion = simulate(system, steps)
     val energy = calculateEnergy(inMotion)
     println("Energy: $energy")
+
+    val stepsUntilSame: Map<String, Long> = simulateUntilSame(system)
+
+    println("Steps per system $stepsUntilSame")
 }
 
 private fun calculatePairs(system: List<Moon>): List<Pair<Moon, Moon>> {
