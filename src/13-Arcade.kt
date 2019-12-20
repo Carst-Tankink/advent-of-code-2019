@@ -10,7 +10,7 @@ enum class ObjectType(val id: Int) {
     BALL(4);
 
     companion object {
-        fun fromId(id: Int) = ObjectType.values().find { it.id == id }!!
+        fun fromId(id: Int) = values().find { it.id == id }!!
     }
 }
 
@@ -45,5 +45,5 @@ fun main() {
     val screen: List<GameObject> = runMachine(computer)
 
 
-    println("Blocks on screen ${screen.count { it.type == ObjectType.BLOCK}}")
+    println("Blocks on screen ${screen.count { it.type == ObjectType.BLOCK }}")
 }
