@@ -50,27 +50,37 @@ fun computeOre(reactions: Map<String, Reaction>): Long {
         }
     }
 
-    fun computeNext(complex: Map<String, Long>): Pair<Map<String, Long>, Map<String, Long>> {
-        val neededInputs = complex.map { entry ->
-            val inputReactions = reactions[entry.key]!!
-            val factor = computeFactor(entry.value, inputReactions.output.second.toLong())
-            inputReactions.input.map { Pair(it.first, it.second * factor) }
-        }
+    fun getNextNeeded(
+        element: Pair<String, Long>,
+        waste: Map<String, Long>
+    ): Pair<Map<String, Long>, Map<String, Long>> {
+        val reaction = reactions[element.first]!!
+        val recyclableWaste = waste[element.first] ?: 0
 
-        return neededInputs.fold(Pair(emptyMap(), emptyMap())) { acc, list ->
-            val (newSimple, newComplex) = list.partition {
-                reactions[it.first]?.input?.get(0)?.first == "ORE"
-            }
-            Pair(mergeWithSum(acc.first, newComplex.toMap()), mergeWithSum(acc.second, newSimple.toMap()))
+
+        val (toProduce, wasteLeft) = if (recyclableWaste < element.second) {
+            Pair(element.second - recyclableWaste, 0L)
+        } else Pair(0L, recyclableWaste - element.second)
+
+        val factor = computeFactor(toProduce, reaction.output.second.toLong())
+        return if (factor == 0L) Pair(emptyMap(), mapOf(Pair(element.first, wasteLeft))) else {
+            val newWaste = (factor * reaction.output.second) - toProduce
+            val inputNeeded = reaction.input.map { Pair(it.first, it.second * factor) }
+
+            return Pair(inputNeeded.toMap(), mapOf(Pair(element.first, newWaste)))
         }
     }
 
 
-    tailrec fun rec(complex: Map<String, Long>, simple: Map<String, Long>): Long {
-        return if (complex.isEmpty()) calculateOre(simple, reactions) else {
-            val (nextComplex, simpleElements) = computeNext(complex)
-            val nextSimple = mergeWithSum(simple, simpleElements)
-            rec(nextComplex, nextSimple)
+    tailrec fun rec(complex: Map<String, Long>, waste: Map<String, Long>): Long {
+        return if (complex.all { it.key == "ORE" }) complex["ORE"]!! else {
+            val nextElement: Pair<String, Long> = complex
+                .filter { it.key != "ORE" }
+                .entries.elementAt(0).toPair()
+            val (nextNeeded, newWaste) = getNextNeeded(nextElement, waste)
+            val newMap: Map<String, Long> = complex.minus(nextElement.first)
+            val wasteUsed = waste - newWaste.keys
+            rec(mergeWithSum(newMap, nextNeeded), mergeWithSum(wasteUsed, newWaste))
         }
     }
 
