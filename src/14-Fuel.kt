@@ -40,7 +40,10 @@ fun calculateOre(toMake: Map<String, Long>, reactions: Map<String, Reaction>): L
         .sum()
 }
 
-fun computeOre(reactions: Map<String, Reaction>): Long {
+fun computeOre(
+    reactions: Map<String, Reaction>,
+    amount: Long
+): Long {
     fun mergeWithSum(
         simple: Map<String, Long>,
         simpleElements: Map<String, Long>
@@ -84,7 +87,7 @@ fun computeOre(reactions: Map<String, Reaction>): Long {
         }
     }
 
-    return rec(mapOf(Pair("FUEL", 1L)), emptyMap())
+    return rec(mapOf(Pair("FUEL", amount)), emptyMap())
 }
 
 fun main() {
@@ -100,7 +103,31 @@ fun main() {
             entry.value[0]
         }
 
-    val ore = computeOre(requirements)
+    val ore = computeOre(requirements, 1L)
     println("Required: $ore")
 
+    val fuel = findMaximumFuel(1000000000000L, requirements, ore)
+    println("Fuel possible: $fuel")
+}
+
+fun findMaximumFuel(inHold: Long, reactions: Map<String, Reaction>, oneRun: Long): Long {
+    var part2 = inHold / (oneRun - 1)
+    while (true) {
+        val checkFuel = computeOre(reactions, part2)
+        if (checkFuel <= inHold) {
+            val sizingCheck = (inHold - checkFuel) / oneRun;
+            part2 += when {
+                sizingCheck > 10000000 -> 10000000
+                sizingCheck > 1000000 -> 1000000
+                sizingCheck > 100000 -> 100000
+                sizingCheck > 10000 -> 10000
+                sizingCheck > 1000 -> 1000
+                sizingCheck > 100 -> 100
+                sizingCheck > 10 -> 10
+                else -> 1
+            }
+        } else {
+            return part2 - 1
+        }
+    }
 }
