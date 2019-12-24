@@ -1,6 +1,6 @@
 package util
 
-data class Location(val x: Int, val y: Int) {
+data class Location(val x: Long, val y: Long) {
     operator fun plus(other: Location): Location =
         Location(
             this.x + other.x,

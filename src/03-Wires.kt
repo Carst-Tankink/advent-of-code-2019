@@ -70,7 +70,7 @@ fun main() {
 
 }
 
-fun findIntersections(horizontals: List<Stretch>, verticals: List<Stretch>): List<Pair<Location, Int>> {
+fun findIntersections(horizontals: List<Stretch>, verticals: List<Stretch>): List<Pair<Location, Long>> {
 
     val horizontalsAscending = horizontals.map { stretch ->
         if (stretch.direction == RIGHT) stretch else stretch.flip()
@@ -88,7 +88,7 @@ fun findIntersections(horizontals: List<Stretch>, verticals: List<Stretch>): Lis
     }
 }
 
-fun calculateCombinedWireDistance(horizontal: Stretch, vertical: Stretch): Int {
+fun calculateCombinedWireDistance(horizontal: Stretch, vertical: Stretch): Long {
     // Revert flips used in finding intersection
     val normalizedHorizontal =
         if (horizontal.direction == RIGHT) horizontal else horizontal.flip()

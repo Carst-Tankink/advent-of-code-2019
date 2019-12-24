@@ -68,9 +68,9 @@ fun runMachine(computer: Machine, auto: Boolean): Map<Location, ObjectType> {
                 rec(computer.input(input), screen)
             }
             State.Output -> {
-                val xPos = computer.output.toInt()
+                val xPos = computer.output
                 val nextComputer = computer.cont()
-                val yPos = nextComputer.output.toInt()
+                val yPos = nextComputer.output
                 val location = Location(xPos, yPos)
                 val idComputer = nextComputer.cont()
 
@@ -120,7 +120,7 @@ fun drawScreen(screen: Map<Location, ObjectType>) {
     println("Score: $score")
 
 
-    val lines: Map<Int, List<ObjectType>> = screen.entries
+    val lines: Map<Long, List<ObjectType>> = screen.entries
         .filterNot { it.key == scoreLocation }
         .groupBy { it.key.y }
         .toSortedMap()
