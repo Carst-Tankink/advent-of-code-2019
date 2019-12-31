@@ -27,7 +27,7 @@ data class Robot(
                 }
 
                 val newDirection = direction.rotate(turn)
-                val newLocation = location.move(newDirection)
+                val newLocation = location.move(newDirection, invertY = true)
                 Pair(copy(computer = withRotation.cont(), location = newLocation, direction = newDirection), newHull)
             }
             State.Input -> {
@@ -72,7 +72,7 @@ fun main() {
     val maxY = ys.max() ?: 0
     val minY = ys.min() ?: 0
 
-    for (y in maxY.downTo(minY)) {
+    for (y in minY.rangeTo(maxY)) {
         for (x in minX.rangeTo(maxX)) {
             val toPrint = if (painted.contains(Location(x, y))) "#" else " "
             print(toPrint)
