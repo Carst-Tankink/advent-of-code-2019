@@ -1,6 +1,7 @@
 package computer
 
 import java.io.File
+import java.lang.IllegalStateException
 
 enum class State {
     Halt, Input, Output, Running
@@ -13,7 +14,7 @@ data class Machine(
     val relativeBase: Int = 0,
     val state: State = State.Running
 ) {
-    companion object{
+    companion object {
         fun parseProgram(file: String): List<Long> {
             return File(file)
                 .readLines()
@@ -95,7 +96,7 @@ data class Machine(
         val result = operation(arguments[0], arguments[1])
         val resultMode = (memory[position] / 10000) % 10
         val resultPosition = memory[position + 3]
-        val updatedMemory = updateMemory(resultPosition.toInt(), resultMode.toInt(),  result)
+        val updatedMemory = updateMemory(resultPosition.toInt(), resultMode.toInt(), result)
 
         return copy(memory = updatedMemory, position = position + 4)
     }
@@ -173,10 +174,21 @@ data class Machine(
     }
 
     fun input(input: Long): Machine {
+        if (this.state != State.Input) {
+            throw IllegalStateException("wrong state for input: ${this.state}")
+        }
+
         return doSave(input).run()
     }
 
     fun cont(): Machine {
         return copy(state = State.Running).run()
+    }
+
+    fun inputAscii(compressSteps: String): Machine {
+        return if (compressSteps.isEmpty()) this.input(10L) else {
+            val nextChar = compressSteps.first()
+            this.input(nextChar.toLong()).inputAscii(compressSteps.drop(1))
+        }
     }
 }

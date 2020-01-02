@@ -16,3 +16,21 @@ data class Location(val x: Long, val y: Long) {
         }
     }
 }
+
+fun printGrid(grid: Map<Location, Any>) {
+    val lines: Map<Long, List<Any>> = grid.entries
+        .groupBy { it.key.y }
+        .toSortedMap()
+        .mapValues { locationLine ->
+            locationLine.value
+                .sortedBy { entry -> entry.key.x }
+                .map { it.value }
+        }
+
+    for (line in lines) {
+        for (item in line.value) {
+            print(item.toString())
+        }
+        println()
+    }
+}
